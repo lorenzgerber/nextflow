@@ -20,8 +20,6 @@
 
 package nextflow
 
-import static nextflow.Const.S3_UPLOADER_CLASS
-
 import java.lang.reflect.Method
 import java.nio.file.Files
 import java.nio.file.Path
@@ -54,6 +52,7 @@ import nextflow.processor.TaskProcessor
 import nextflow.script.ScriptBinding
 import nextflow.trace.GraphObserver
 import nextflow.trace.ReportObserver
+import nextflow.trace.ScreenRendererObserver
 import nextflow.trace.StatsObserver
 import nextflow.trace.TimelineObserver
 import nextflow.trace.TraceFileObserver
@@ -68,6 +67,7 @@ import nextflow.util.HistoryFile
 import nextflow.util.NameGenerator
 import sun.misc.Signal
 import sun.misc.SignalHandler
+import static nextflow.Const.S3_UPLOADER_CLASS
 /**
  * Holds the information on the current execution
  *
@@ -202,6 +202,9 @@ class Session implements ISession {
     Throwable getError() { error }
 
     WorkflowStats getWorkflowStats() { workflowStats }
+
+    boolean screenRenderer
+
 
     /**
      * Creates a new session with an 'empty' (default) configuration
@@ -345,8 +348,15 @@ class Session implements ISession {
         createTimelineObserver(result)
         createDagObserver(result)
         createWebLogObserver(result)
+        createScreenRenderer(result)
 
         return result
+    }
+
+    protected void createScreenRenderer(Collection<TraceObserver> result) {
+        if( screenRenderer ) {
+            result << new ScreenRendererObserver()
+        }
     }
 
     /**

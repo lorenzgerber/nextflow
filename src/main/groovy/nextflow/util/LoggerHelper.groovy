@@ -197,7 +197,8 @@ class LoggerHelper {
 
     protected ConsoleAppender createConsoleAppender() {
 
-        final ConsoleAppender result = daemon && opts.isBackground() ? null : new ConsoleAppender()
+        final disabled = daemon && opts.isBackground() || opts.disableConsoleLogger
+        final ConsoleAppender result =  disabled ? null : new ConsoleAppender()
         if( result )  {
 
             final filter = new ConsoleLoggerFilter( packages )
@@ -354,7 +355,7 @@ class LoggerHelper {
         PrettyConsoleLayout() {
         }
 
-        public String doLayout(ILoggingEvent event) {
+        String doLayout(ILoggingEvent event) {
             StringBuilder buffer = new StringBuilder(128);
             if( event.level == Level.INFO ) {
                 buffer .append(event.getFormattedMessage()) .append(CoreConstants.LINE_SEPARATOR)
