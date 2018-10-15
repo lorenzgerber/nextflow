@@ -205,6 +205,8 @@ class Session implements ISession {
 
     boolean screenRenderer
 
+    ScreenRendererObserver screenObserver
+
 
     /**
      * Creates a new session with an 'empty' (default) configuration
@@ -355,7 +357,8 @@ class Session implements ISession {
 
     protected void createScreenRenderer(Collection<TraceObserver> result) {
         if( screenRenderer ) {
-            result << new ScreenRendererObserver()
+            this.screenObserver = new ScreenRendererObserver()
+            result << screenObserver
         }
     }
 

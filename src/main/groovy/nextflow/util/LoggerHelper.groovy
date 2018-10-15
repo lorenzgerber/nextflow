@@ -19,8 +19,6 @@
  */
 
 package nextflow.util
-import static nextflow.Const.MAIN_PACKAGE
-import static nextflow.Const.S3_UPLOADER_CLASS
 
 import java.lang.reflect.Field
 import java.nio.file.NoSuchFileException
@@ -29,9 +27,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.spi.ThrowableProxy
 import ch.qos.logback.classic.net.SyslogAppender
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.classic.spi.LoggingEvent
+import ch.qos.logback.classic.spi.ThrowableProxy
+import ch.qos.logback.core.Appender
+import ch.qos.logback.core.AppenderBase
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.core.CoreConstants
 import ch.qos.logback.core.FileAppender
@@ -56,6 +57,8 @@ import nextflow.file.FileHelper
 import org.apache.commons.lang.exception.ExceptionUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import static nextflow.Const.MAIN_PACKAGE
+import static nextflow.Const.S3_UPLOADER_CLASS
 /**
  * Helper class to setup the logging subsystem
  *
@@ -84,11 +87,11 @@ class LoggerHelper {
 
     private LoggerContext loggerContext
 
-    private ConsoleAppender consoleAppender
+    private Appender consoleAppender
 
-    private SyslogAppender syslogAppender
+    private Appender syslogAppender
 
-    private FileAppender fileAppender
+    private Appender fileAppender
 
     LoggerHelper setRolling( boolean value ) {
         this.rolling = value
@@ -195,23 +198,36 @@ class LoggerHelper {
         return logger
     }
 
-    protected ConsoleAppender createConsoleAppender() {
+    protected Appender createConsoleAppender() {
 
-        final disabled = daemon && opts.isBackground() || opts.disableConsoleLogger
-        final ConsoleAppender result =  disabled ? null : new ConsoleAppender()
-        if( result )  {
-
+        if( opts.disableConsoleLogger ) {
+            final result = new CaptureAppender()
             final filter = new ConsoleLoggerFilter( packages )
             filter.setContext(loggerContext)
             filter.start()
 
             result.setContext(loggerContext)
-            result.setEncoder( new LayoutWrappingEncoder( layout: new PrettyConsoleLayout() ) )
             result.addFilter(filter)
             result.start()
+            return result
+        }
+        else {
+            final ConsoleAppender result = daemon && opts.isBackground() ? null : new ConsoleAppender()
+            if( result )  {
+
+                final filter = new ConsoleLoggerFilter( packages )
+                filter.setContext(loggerContext)
+                filter.start()
+
+                result.setContext(loggerContext)
+                result.setEncoder( new LayoutWrappingEncoder( layout: new PrettyConsoleLayout() ) )
+                result.addFilter(filter)
+                result.start()
+            }
+
+            return result
         }
 
-        return result
     }
 
     protected SyslogAppender createSyslogAppender() {
@@ -356,7 +372,8 @@ class LoggerHelper {
         }
 
         String doLayout(ILoggingEvent event) {
-            StringBuilder buffer = new StringBuilder(128);
+            final session = (Session)Global.session
+            final buffer = new StringBuilder(512);
             if( event.level == Level.INFO ) {
                 buffer .append(event.getFormattedMessage()) .append(CoreConstants.LINE_SEPARATOR)
             }
@@ -366,7 +383,7 @@ class LoggerHelper {
                             ? (event.getThrowableProxy() as ThrowableProxy).throwable
                             : null) as Throwable
 
-                appendFormattedMessage(buffer, event, error, (Session)Global.session)
+                appendFormattedMessage(buffer, event, error, session)
             }
             else {
                 buffer
@@ -375,7 +392,21 @@ class LoggerHelper {
                         .append(CoreConstants.LINE_SEPARATOR)
             }
 
-            return buffer.toString()
+            // append to screen renderer
+            final message = buffer.toString()
+            if( session.screenObserver ) {
+                if( event.level==Level.ERROR ) {
+                    session.screenObserver.addError(message)
+                }
+                else if( event.level==Level.WARN ) {
+                    session.screenObserver.addWarning(message)
+                }
+                else if( event.level==Level.INFO && message.indexOf('NOTE:')!=-1 ) {
+                    session.screenObserver.addWarning(message)
+                }
+            }
+
+            return message
         }
     }
 
@@ -497,5 +528,11 @@ class LoggerHelper {
 
     }
 
+    static class CaptureAppender extends AppenderBase<LoggingEvent> {
+
+        @Override
+        protected void append(LoggingEvent event) {
+        }
+    }
 
 }

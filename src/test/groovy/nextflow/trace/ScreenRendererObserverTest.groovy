@@ -34,6 +34,7 @@ class ScreenRendererObserverTest extends Specification {
         stats.submitted = SUBMIT
         stats.completed = COMPLETED
         stats.cached    = CACHE
+        stats.hash = '4e/486876'
 
         expect:
         o.line('foo', stats) == EXPECTED
