@@ -133,14 +133,10 @@ class CmdRun extends CmdBase implements HubOptions {
     @Parameter(names='-stdin', hidden = true)
     boolean stdin
 
-
-    @Parameter(names = ['-with-console'], hidden = true, arity = 0)
-    boolean setConsole(boolean value) {
-        withConsole = value
-        launcher.options.disableConsoleLogger = value
+    @Parameter(names = ['-ansi'], hidden = true, arity = 0)
+    boolean setAnsiTerm(boolean value) {
+        launcher.options.enableAnsi = value
     }
-
-    boolean withConsole
 
     @Parameter(names = ['-with-weblog'], description = 'Send workflow status messages via HTTP to target URL')
     String withWebLog
@@ -231,7 +227,7 @@ class CmdRun extends CmdBase implements HubOptions {
         final runner = new ScriptRunner(config)
         runner.script = scriptFile
         runner.profile = profile
-        runner.session.screenRenderer = withConsole
+        runner.session.enableAnsi = launcher.options.enableAnsi
 
         if( this.test ) {
             runner.test(this.test, scriptArgs)

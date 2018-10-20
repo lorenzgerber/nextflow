@@ -29,7 +29,6 @@ import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.classic.net.SyslogAppender
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
 import ch.qos.logback.core.Appender
 import ch.qos.logback.core.AppenderBase
@@ -200,7 +199,7 @@ class LoggerHelper {
 
     protected Appender createConsoleAppender() {
 
-        if( opts.disableConsoleLogger ) {
+        if( opts.enableAnsi ) {
             final result = new CaptureAppender()
             final filter = new ConsoleLoggerFilter( packages )
             filter.setContext(loggerContext)
@@ -366,55 +365,48 @@ class LoggerHelper {
      * Do not print INFO level prefix, used to print logging information
      * to the application stdout
      */
-    static class PrettyConsoleLayout extends LayoutBase<ILoggingEvent> {
+    static private class PrettyConsoleLayout extends LayoutBase<ILoggingEvent> {
 
-        PrettyConsoleLayout() {
-        }
-
+        @Override
         String doLayout(ILoggingEvent event) {
             final session = (Session)Global.session
-            final buffer = new StringBuilder(512);
-            if( event.level == Level.INFO ) {
-                buffer .append(event.getFormattedMessage()) .append(CoreConstants.LINE_SEPARATOR)
-            }
-
-            else if( event.level == Level.ERROR ) {
-                def error = ( event.getThrowableProxy() instanceof ThrowableProxy
-                            ? (event.getThrowableProxy() as ThrowableProxy).throwable
-                            : null) as Throwable
-
-                appendFormattedMessage(buffer, event, error, session)
-            }
-            else {
-                buffer
-                        .append( event.getLevel().toString() ) .append(": ")
-                        .append(event.getFormattedMessage())
-                        .append(CoreConstants.LINE_SEPARATOR)
-            }
-
-            // append to screen renderer
-            final message = buffer.toString()
-            if( session.screenObserver ) {
-                if( event.level==Level.ERROR ) {
-                    session.screenObserver.addError(message)
-                }
-                else if( event.level==Level.WARN ) {
-                    session.screenObserver.addWarning(message)
-                }
-                else if( event.level==Level.INFO && message.indexOf('NOTE:')!=-1 ) {
-                    session.screenObserver.addWarning(message)
-                }
-            }
-
-            return message
+            fmtEvent(event, session)
         }
     }
 
+    /**
+     * Format a logging event
+     *
+     * @param event The logging event
+     * @param session Nextflow session object
+     * @return the formatted logging message
+     */
+    static protected String fmtEvent(ILoggingEvent event, Session session) {
+        final buffer = new StringBuilder(512);
+        if( event.level == Level.INFO ) {
+            buffer .append(event.getFormattedMessage()) .append(CoreConstants.LINE_SEPARATOR)
+        }
+        else if( event.level == Level.ERROR ) {
+            def error = ( event.getThrowableProxy() instanceof ThrowableProxy
+                    ? (event.getThrowableProxy() as ThrowableProxy).throwable
+                    : null) as Throwable
+
+            appendFormattedMessage(buffer, event, error, session)
+        }
+        else {
+            buffer
+                    .append( event.getLevel().toString() ) .append(": ")
+                    .append(event.getFormattedMessage())
+                    .append(CoreConstants.LINE_SEPARATOR)
+        }
+
+        return buffer.toString()
+    }
 
     /**
      * Find out the script line where the error has thrown
      */
-    static void appendFormattedMessage( StringBuilder buffer, ILoggingEvent event, Throwable fail, Session session) {
+    static protected void appendFormattedMessage( StringBuilder buffer, ILoggingEvent event, Throwable fail, Session session) {
 
         final scriptName = session?.scriptName
         final className = session?.scriptClassName
@@ -514,7 +506,7 @@ class LoggerHelper {
         private final AtomicBoolean firstTime = new AtomicBoolean(true);
 
         @Override
-        public boolean isTriggeringEvent(File activeFile, E event) {
+        boolean isTriggeringEvent(File activeFile, E event) {
 
             if ( !firstTime.get() ) { // fast path
                 return false;
@@ -528,10 +520,36 @@ class LoggerHelper {
 
     }
 
-    static class CaptureAppender extends AppenderBase<LoggingEvent> {
+    /**
+     * Capture logging events and forward them to
+     */
+    static private class CaptureAppender extends AppenderBase<ILoggingEvent> {
 
         @Override
-        protected void append(LoggingEvent event) {
+        protected void append(ILoggingEvent event) {
+            final session = (Session)Global.session
+
+            try {
+                // append to screen renderer
+                final message = fmtEvent(event, session).trim()
+                final renderer = session?.ansiTermObserver
+                if( !renderer ) {
+                    System.out.println(message)
+                }
+
+                else if( event.level==Level.ERROR )
+                    renderer.appendError(message)
+
+                else if( event.level==Level.WARN )
+                    renderer.appendWarning(message)
+
+                else
+                    renderer.appendInfo(message)
+            }
+            catch (Throwable e) {
+                e.printStackTrace()
+            }
+
         }
     }
 

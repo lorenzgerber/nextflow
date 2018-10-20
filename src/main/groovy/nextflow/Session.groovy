@@ -52,8 +52,8 @@ import nextflow.processor.TaskProcessor
 import nextflow.script.ScriptBinding
 import nextflow.trace.GraphObserver
 import nextflow.trace.ReportObserver
-import nextflow.trace.ScreenRendererObserver
 import nextflow.trace.StatsObserver
+import nextflow.trace.AnsiTermObserver
 import nextflow.trace.TimelineObserver
 import nextflow.trace.TraceFileObserver
 import nextflow.trace.TraceObserver
@@ -203,9 +203,9 @@ class Session implements ISession {
 
     WorkflowStats getWorkflowStats() { workflowStats }
 
-    boolean screenRenderer
+    boolean enableAnsi
 
-    ScreenRendererObserver screenObserver
+    AnsiTermObserver ansiTermObserver
 
 
     /**
@@ -350,15 +350,15 @@ class Session implements ISession {
         createTimelineObserver(result)
         createDagObserver(result)
         createWebLogObserver(result)
-        createScreenRenderer(result)
+        createAnsiTermObserver(result)
 
         return result
     }
 
-    protected void createScreenRenderer(Collection<TraceObserver> result) {
-        if( screenRenderer ) {
-            this.screenObserver = new ScreenRendererObserver()
-            result << screenObserver
+    protected void createAnsiTermObserver(Collection<TraceObserver> result) {
+        if( enableAnsi ) {
+            this.ansiTermObserver = new AnsiTermObserver()
+            result << ansiTermObserver
         }
     }
 

@@ -22,24 +22,29 @@ import nextflow.processor.TaskHandler
 import nextflow.util.Duration
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
-import static org.fusesource.jansi.Ansi.ansi
 import static org.fusesource.jansi.Ansi.Color
+import static org.fusesource.jansi.Ansi.ansi
 
 /**
+ * Implements an observer which display workflow
+ * execution progress and notifications using
+ * ANSI escape codes
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
 @CompileStatic
-class ScreenRendererObserver implements TraceObserver {
+class AnsiTermObserver implements TraceObserver {
+
+    static final private String NEWLINE = System.getProperty("line.separator")
 
     static class ProcessStats {
         int submitted
-        int started
         int cached
         int failed
         int completed
         String hash
         boolean error
+        boolean changed
     }
 
     static class Event {
@@ -61,11 +66,15 @@ class ScreenRendererObserver implements TraceObserver {
 
     private List<Event> warnings = new ArrayList<>()
 
+    private List<Event> infos = new ArrayList<>()
+
     private Thread renderer
 
     private Map<String,ProcessStats> processes = new LinkedHashMap()
 
     private volatile boolean stopped
+
+    private volatile boolean started
 
     private int printedLines
 
@@ -77,49 +86,104 @@ class ScreenRendererObserver implements TraceObserver {
 
     private long endTimestamp
 
-    void addWarning( String message ) {
-        warnings << new Event(message)
+    synchronized void appendInfo(String message) {
+        if( message.startsWith('[') )
+            return
+        
+        if( !started || !processes ) {
+            println message
+        }
+        else {
+            if( message.indexOf('NOTE:')!=-1 )
+                warnings << new Event(message)
+            else
+                infos << new Event(message)
+        }
     }
 
-    void addError(String message ) {
-        errors << new Event(message)
+    synchronized void appendWarning(String message) {
+        if( !started || !processes )
+            printAnsi(message, Color.YELLOW)
+        else
+            warnings << new Event(message)
     }
 
-    protected void render(dummy) {
+    synchronized void appendError(String message) {
+        if( !started || !processes )
+            printAnsi(message, Color.RED)
+        else
+            errors << new Event(message)
+    }
+
+    protected void render0(dummy) {
         while(!stopped) {
-            renderProcesses()
+            renderProgress()
             sleep 150
         }
     }
 
-    synchronized protected void renderProcesses() {
-        int count = 0
+    protected void renderMessages( Ansi term, List<Event> allMessages, Color color=null )  {
+        def itr = allMessages.iterator()
+        while( itr.hasNext() ) {
+            final event = itr.next()
+
+            if( color ) {
+                term.fg(color).a(event.message).fg(Color.DEFAULT)
+            }
+            else {
+                term.a(event.message)
+            }
+            term.newline()
+
+            // evict old warnings
+            final delta = System.currentTimeMillis()-event.timestamp
+            if( delta>60_000 )
+                itr.remove()
+        }
+    }
+
+    protected void renderProcesses(Ansi term) {
+        for( Map.Entry<String,ProcessStats> entry : processes ) {
+
+            def str = line(entry.key,entry.value)
+            if( entry.value.changed && !stopped ) {
+                term.bold().fg(Color.GREEN).a(str).fg(Color.DEFAULT).boldOff()
+                entry.value.changed = false
+            }
+            else {
+                term.a(str)
+            }
+            term.newline()
+
+        }
+    }
+
+    protected void renderErrors( Ansi term ) {
+        for( Event event : errors ) {
+            term.fg(Color.RED)
+            term.a(event.message)
+            term.fg(Color.DEFAULT).newline()
+        }
+    }
+
+    synchronized protected void renderProgress() {
         if( printedLines )
             AnsiConsole.out.println ansi().cursorUp(printedLines+1)
 
         // -- print processes
-        processes.each { name, stats ->
-            count++
-            def str = line(name,stats)
-            AnsiConsole.out.println(ansi().a(str).eraseLine())
-        }
-        printedLines = count
+        final term = ansi()
+        renderProcesses(term)
+        renderMessages(term, infos)
+        renderMessages(term, warnings, Color.YELLOW)
+        renderErrors(term)
 
-        // -- print warning
-        def itr = warnings.iterator()
-        while( itr.hasNext() ) {
-            final event = itr.next()
-            printAnsi(event.message, Color.YELLOW)
-            final delta = System.currentTimeMillis()-event.timestamp
-            // evict old warnings
-            if( delta>60_000 )
-                itr.remove()
+        final str = term.toString()
+        if( str ) {
+            printAnsiLines(str)
+            printedLines = str.count(NEWLINE)
         }
-
-        // -- print errors
-        for( Event event : errors ) {
-            printAnsi(event.message, Color.RED)
-        }
+        else
+            printedLines = 0
 
         if( stats ) {
             final delta = endTimestamp-startTimestamp
@@ -135,7 +199,7 @@ class ScreenRendererObserver implements TraceObserver {
             if( stats.failedCount )
                 report += "Failed      : ${stats.failedCountFmt}\n"
 
-            printAnsi(report)
+            printAnsi(report, Color.GREEN, true)
         }
 
         AnsiConsole.out.flush()
@@ -147,9 +211,14 @@ class ScreenRendererObserver implements TraceObserver {
         if( bold ) fmt = fmt.bold()
         fmt = fmt.a(message)
         if( bold ) fmt = fmt.boldOff()
-        if( color ) fmt = fmt.fg(Ansi.Color.DEFAULT)
+        if( color ) fmt = fmt.fg(Color.DEFAULT)
         AnsiConsole.out.println(fmt.eraseLine())
     }
+    
+    protected void printAnsiLines(String lines) {
+        final text = lines.replace(NEWLINE,  ansi().eraseLine().toString() + NEWLINE)
+        AnsiConsole.out.print(text)
+    } 
 
     protected String line(String name, ProcessStats stats) {
         final int tot = stats.submitted + stats.cached
@@ -158,7 +227,7 @@ class ScreenRendererObserver implements TraceObserver {
         final pct = "[${String.valueOf(x).padLeft(3)}%]".toString()
         final label = name.padRight(maxNameLength)
         final numbs = "${com} of ${tot}".toString()
-        def result = "[$stats.hash] $label: $numbs"
+        def result = "[$stats.hash] $label: $pct $numbs"
         if( stats.cached )
             result += ", cached: $stats.cached"
         if( stats.failed )
@@ -167,7 +236,7 @@ class ScreenRendererObserver implements TraceObserver {
     }
 
 
-    protected ProcessStats p(String name) {
+    private ProcessStats p0(String name) {
         def result = processes.get(name)
         if( !result ) {
             result = new ProcessStats()
@@ -177,55 +246,57 @@ class ScreenRendererObserver implements TraceObserver {
         return result
     }
 
-
-    protected ProcessStats p(TaskHandler handler) {
-        p(handler.task.processor.name)
+    private ProcessStats p0(TaskHandler handler) {
+        p0(handler.task.processor.name)
     }
 
+    @Override
     void onFlowStart(Session session){
+        this.started = true
         this.session = session
         this.startTimestamp = System.currentTimeMillis()
         AnsiConsole.systemInstall()
-        this.renderer = Thread.start('ScreenRendererObserver', this.&render)
+        this.renderer = Thread.start('AnsiTermObserver', this.&render0)
     }
 
+    @Override
     void onFlowComplete(){
         this.stopped = true
         this.stats = session.isSuccess() ? session.getWorkflowStats() : null
         this.endTimestamp = System.currentTimeMillis()
-        renderProcesses()
+        renderProgress()
     }
 
     /**
      * This method is invoked before a process run is going to be submitted
      * @param handler
      */
+    @Override
     synchronized void onProcessSubmit(TaskHandler handler, TraceRecord trace){
-        final process = p(handler)
+        final process = p0(handler)
         process.submitted++
         process.hash = handler.task.hashLog
+        process.changed = true
     }
 
-    synchronized  void onProcessStart(TaskHandler handler, TraceRecord trace){
-        final process = p(handler)
-        process.started++
-        process.hash = handler.task.hashLog
-    }
-
+    @Override
     synchronized void onProcessComplete(TaskHandler handler, TraceRecord trace){
-        final process = p(handler)
+        final process = p0(handler)
         process.completed++
         process.hash = handler.task.hashLog
+        process.changed = true
         if( handler.getStatusString() != 'COMPLETED' ) {
             process.failed++
             process.error = true
         }
     }
 
+    @Override
     synchronized void onProcessCached(TaskHandler handler, TraceRecord trace){
-        final process = p(handler)
+        final process = p0(handler)
         process.cached++
         process.hash = handler.task.hashLog
+        process.changed = true
     }
 
 }

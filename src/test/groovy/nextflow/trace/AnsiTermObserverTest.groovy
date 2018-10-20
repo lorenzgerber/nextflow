@@ -23,14 +23,14 @@ import spock.lang.Unroll
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
-class ScreenRendererObserverTest extends Specification {
+class AnsiTermObserverTest extends Specification {
 
     @Unroll
     def 'should render a process line' () {
 
         given:
-        def o = new ScreenRendererObserver()
-        def stats = new ScreenRendererObserver.ProcessStats()
+        def o = new AnsiTermObserver()
+        def stats = new AnsiTermObserver.ProcessStats()
         stats.submitted = SUBMIT
         stats.completed = COMPLETED
         stats.cached    = CACHE
@@ -41,11 +41,11 @@ class ScreenRendererObserverTest extends Specification {
 
         where:
         SUBMIT  | COMPLETED | CACHE | EXPECTED
-        1       | 0         | 0     | '> [  0%] foo: 0 of 1'
-        1       | 1         | 0     | '> [100%] foo: 1 of 1'
-        10      | 5         | 0     | '> [ 50%] foo: 5 of 10'
-        0       | 0         | 5     | '> [100%] foo: 5 of 5'
-        2       | 1         | 3     | '> [ 80%] foo: 4 of 5'
+        1       | 0         | 0     | '[4e/486876] foo: [  0%] 0 of 1'
+        1       | 1         | 0     | '[4e/486876] foo: [100%] 1 of 1'
+        10      | 5         | 0     | '[4e/486876] foo: [ 50%] 5 of 10'
+        0       | 0         | 5     | '[4e/486876] foo: [100%] 5 of 5, cached: 5'
+        2       | 1         | 3     | '[4e/486876] foo: [ 80%] 4 of 5, cached: 3'
 
     }
 

@@ -1282,7 +1282,7 @@ class TaskProcessor {
         }
 
         // -- finally prints out the task output when 'echo' is true
-        if( task.config.echo && !session.screenRenderer ) {
+        if( task.config.echo && !session.enableAnsi ) {
             task.echoStdout()
         }
     }
