@@ -23,16 +23,16 @@ package nextflow.executor
 import groovy.util.logging.Slf4j
 import nextflow.processor.TaskRun
 
-
-
 /**
- * Implements a executor for PBSPro cluster
+ * Implements a executor for PBSPro cluster executor
+ *
  * Tested with version:
  * - 14.2.4
  * - 19.0.0
  * See http://www.pbspro.org
  *
  * @author Lorenz Gerber <lorenzottogerber@gmail.com>
+ * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
 @Slf4j
 class PbsProExecutor extends PbsExecutor {
@@ -57,23 +57,21 @@ class PbsProExecutor extends PbsExecutor {
             result << '-q'  << (String)task.config.queue
         }
 
-        if( task.config.cpus == 1 && task.config.memory ) {
-            result << '-l' << "select=mem=${task.config.memory.toString().replaceAll(/[\s]/,'').toLowerCase()}"
+        def res = []
+        if( task.config.cpus > 1 ) {
+            res << "ncpus=${task.config.cpus}".toString()
         }
-
-        if( task.config.cpus > 1 && !task.config.memory ) {
-            result << '-l' << "select=1:ncpus=${task.config.cpus}"
+        if( task.config.memory ) {
+            res << "mem=${task.config.getMemory().getMega()}mb".toString()
         }
-
-
-        if( task.config.cpus > 1 && task.config.memory ) {
-            result << '-l' << "select=1:ncpus=${task.config.cpus}:mem=${task.config.memory.toString().replaceAll(/[\s]/,'').toLowerCase()}"
+        if( res ) {
+            result << '-l' << "select=1:${res.join(':')}".toString()
         }
 
         // max task duration
         if( task.config.time ) {
             final duration = task.config.getTime()
-            result << "-l" << "walltime=${duration.format('HH:mm:ss')}"
+            result << "-l" << "walltime=${duration.format('HH:mm:ss')}".toString()
         }
 
         // -- at the end append the command script wrapped file name
@@ -91,12 +89,5 @@ class PbsProExecutor extends PbsExecutor {
         return ['sh','-c', "$cmd | egrep '(Job Id:|job_state =)'".toString()]
     }
 
-    static private Map DECODE_STATUS = [
-            'C': QueueStatus.DONE,
-            'R': QueueStatus.RUNNING,
-            'Q': QueueStatus.PENDING,
-            'H': QueueStatus.HOLD,
-            'S': QueueStatus.HOLD
-    ]
 
 }
