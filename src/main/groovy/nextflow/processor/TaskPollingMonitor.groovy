@@ -111,6 +111,11 @@ class TaskPollingMonitor implements TaskMonitor {
     private int capacity
 
     /**
+     * A counter to break out of the 'no pending job but still running' loop
+     */
+    private int noPendingJob = 0;
+
+    /**
      * Define rate limit for task submission
      */
     private RateLimiter submitRateLimit
@@ -427,6 +432,11 @@ class TaskPollingMonitor implements TaskMonitor {
                 break
             }
 
+            if ( noPendingJob == 1 ) {
+                session.abort()
+                break
+            }
+
             // dump this line every two minutes
             Throttle.after(dumpInterval) {
                 dumpPendingTasks()
@@ -440,6 +450,7 @@ class TaskPollingMonitor implements TaskMonitor {
             def pending = runningQueue.size()
             if( !pending ) {
                 log.debug "No more task to compute -- ${session.dumpNetworkStatus() ?: 'Execution may be stalled'}"
+                noPendingJob++
                 return
             }
 
