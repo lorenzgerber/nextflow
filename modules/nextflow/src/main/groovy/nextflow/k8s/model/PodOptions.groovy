@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,10 +134,15 @@ class PodOptions {
 
     String getImagePullSecret() { imagePullSecret }
 
+    PodOptions setImagePullSecret( String secret ) {
+        this.imagePullSecret = secret
+        return this
+    }
+
     String getImagePullPolicy() { imagePullPolicy }
 
-    PodOptions setImagePullPolicy(String p ) {
-        this.imagePullPolicy = p
+    PodOptions setImagePullPolicy( String policy ) {
+        this.imagePullPolicy = policy
         return this
     }
 
@@ -167,6 +172,22 @@ class PodOptions {
 
         // node select
         result.nodeSelector = other.nodeSelector ?: this.nodeSelector
+
+        // pull policy
+        if (other.imagePullPolicy)
+            result.imagePullPolicy = other.imagePullPolicy
+        else
+            result.imagePullPolicy = imagePullPolicy
+
+        // image secret
+        if (other.imagePullSecret)
+            result.imagePullSecret = other.imagePullSecret
+        else
+            result.imagePullSecret = imagePullSecret
+
+        // labels
+        result.labels.putAll(labels)
+        result.labels.putAll(other.labels)
 
         return result
     }

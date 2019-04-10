@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 import groovy.transform.CompileStatic
+import groovy.transform.Memoized
 import groovy.transform.PackageScope
 import groovy.util.logging.Slf4j
 import nextflow.container.ContainerBuilder
@@ -139,6 +140,8 @@ class BashWrapperBuilder {
         systemOsName.startsWith('Mac')
     }
 
+    // memoize the result to avoid to multiple time the same input files
+    @Memoized
     protected Map<String,Path> getResolvedInputs() {
         copyStrategy.resolveForeignFiles(inputFiles)
     }
@@ -394,7 +397,7 @@ class BashWrapperBuilder {
         result.readLines().join('\n  ')
     }
 
-
+    @PackageScope
     ContainerBuilder createContainerBuilder0(String engine) {
         /*
          * create a builder instance given the container engine
@@ -410,6 +413,7 @@ class BashWrapperBuilder {
         //
         throw new IllegalArgumentException("Unknown container engine: $engine")
     }
+
     /**
      * Build a {@link DockerBuilder} object to handle Docker commands
      *
@@ -426,7 +430,9 @@ class BashWrapperBuilder {
         /*
          * initialise the builder
          */
-        builder.addMountForInputs(resolvedInputs)
+        // do not mount inputs when they are copied in the task work dir -- see #1105
+        if( stageInMode != 'copy' )
+            builder.addMountForInputs(resolvedInputs)
 
         builder.addMount(binDir)
 

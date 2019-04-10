@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,14 +85,15 @@ class SingularityCacheTest extends Specification {
         def dir = Files.createTempDirectory('test')
         def IMAGE = 'docker://pditommaso/foo:latest'
         def LOCAL = 'foo-latest.img'
+        ContainerConfig config = [noHttps: true] 
         and:
-        def cache = Spy(SingularityCache)
+        def cache = Spy(SingularityCache, constructorArgs: [ config ])
 
         when:
         cache.downloadSingularityImage(IMAGE)
         then:
         1 * cache.localImagePath(IMAGE) >> dir.resolve(LOCAL)
-        1 * cache.runCommand("singularity pull --name $LOCAL $IMAGE > /dev/null", dir) >> 0
+        1 * cache.runCommand("singularity pull --nohttps --name $LOCAL $IMAGE > /dev/null", dir) >> 0
 
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class CheckHelper {
      * @return {@code true} is the match is satisfied or {@code false} otherwise
      */
     static boolean isValid( value, range ) {
-        if( range instanceof Class )
+        if( range instanceof Class && value != null )
             return range.isAssignableFrom(value.class)
 
         if( range instanceof Collection )

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,8 @@ class SgeExecutor extends AbstractGridExecutor {
 
         // task max memory
         if( task.config.memory ) {
-            result << "-l" << "virtual_free=${task.config.memory.toString().replaceAll(/[\sB]/,'')}"
+            final mem = "${task.config.getMemory().mega}M"
+            result << "-l" << "h_rss=$mem,mem_free=$mem"
         }
 
         // -- at the end append the command script wrapped file name

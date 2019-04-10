@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,8 +70,6 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
 
     private final Path inputFile
 
-    private final Path stubFile
-
     private final Path traceFile
 
     private TaskBean bean
@@ -114,7 +112,6 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
         this.errorFile = task.workDir.resolve(TaskRun.CMD_ERRFILE)
         this.exitFile = task.workDir.resolve(TaskRun.CMD_EXIT)
         this.wrapperFile = task.workDir.resolve(TaskRun.CMD_RUN)
-        this.stubFile = task.workDir.resolve(TaskRun.CMD_STUB)
         this.traceFile = task.workDir.resolve(TaskRun.CMD_TRACE)
     }
 
@@ -440,7 +437,7 @@ class AwsBatchTaskHandler extends TaskHandler implements BatchHandler<String,Job
      * @return The fully qualified Batch job definition name eg {@code my-job-definition:3}
      */
     protected String createJobDef(RegisterJobDefinitionRequest req) {
-        final res = client.registerJobDefinition(req)
+        final res = bypassProxy(client).registerJobDefinition(req) // bypass the client proxy! see #1024
         return "${res.jobDefinitionName}:$res.revision"
     }
 

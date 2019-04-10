@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -148,9 +148,11 @@ class PublishDir {
     @CompileStatic
     void apply( List<Path> files, TaskRun task ) {
 
-        if( !files ) {
+        if( !files )
             return
-        }
+
+        if( !path )
+            throw new IllegalStateException("Target path for directive publishDir cannot be null")
 
         this.processor = task.processor
         this.sourceDir = task.targetDir
@@ -174,7 +176,7 @@ class PublishDir {
         /*
          * iterate over the file parameter and publish each single file
          */
-        files.each { value ->
+        for( Path value : files ) {
             apply(value, inProcess)
         }
     }

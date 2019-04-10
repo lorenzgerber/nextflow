@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ class ContainerHandler {
             final normalizedImageName = normalizeSingularityImageName(imageName)
             if( !config.isEnabled() || !normalizedImageName )
                 return normalizedImageName
-            final formats = ['docker', 'shub', 'library']
+            final formats = ['docker', 'docker-daemon', 'shub', 'library']
             final requiresCaching =  formats.any { normalizedImageName.startsWith(it) }
             return requiresCaching ? createCache(this.config, normalizedImageName) : normalizedImageName
         }

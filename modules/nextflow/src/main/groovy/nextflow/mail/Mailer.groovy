@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -253,10 +253,11 @@ class Mailer {
         message.writeTo(stdin);
         stdin.close()   // <-- don't forget otherwise it hangs
         // wait for the sending to complete
-        proc.consumeProcessOutputStream(stdout)
+        final consumer = proc.consumeProcessOutputStream(stdout)
         proc.waitForOrKill(sendTimeout)
         def status = proc.exitValue()
         if( status != 0 ) {
+            consumer.join()
             throw new MessagingException("Unable to send mail message\n  $mailer exit status: $status\n  reported error: $stdout")
         }
     }

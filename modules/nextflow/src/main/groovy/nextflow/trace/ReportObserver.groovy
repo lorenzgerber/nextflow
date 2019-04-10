@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,9 +42,9 @@ import nextflow.script.WorkflowMetadata
 @CompileStatic
 class ReportObserver implements TraceObserver {
 
-    static final String DEF_FILE_NAME = 'report.html'
+    static final public String DEF_FILE_NAME = 'report.html'
 
-    static final int DEF_MAX_TASKS = 10_000
+    static final public int DEF_MAX_TASKS = 10_000
 
     /**
      * Holds the the start time for tasks started/submitted but not yet completed

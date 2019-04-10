@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,10 +84,10 @@ class ReportSummaryTest extends Specification {
         def WRITES = [83,88,99,32,65,null,32,null,87,43]
         def data = [
             '%cpu': CPU,
-            'vmem': MEM,
+            'peak_rss': MEM,
             realtime: TIME,
             'rchar': READS,
-            'wchar': WRITES,
+            'wchar': WRITES
         ]
 
         def report = new ReportSummary()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -227,6 +227,9 @@ abstract class RepositoryProvider {
 
             case 'gitlab':
                 return new GitlabRepositoryProvider(project, config)
+
+            case 'gitea':
+                return new GiteaRepositoryProvider(project, config)
 
             case 'file':
                 // remove the 'local' prefix for the file provider

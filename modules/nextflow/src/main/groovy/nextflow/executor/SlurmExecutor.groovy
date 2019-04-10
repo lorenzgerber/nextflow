@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,11 @@ class SlurmExecutor extends AbstractGridExecutor {
         }
 
         if( task.config.getMemory() ) {
+            //NOTE: Enforcement of memory limits currently relies upon the task/cgroup plugin or
+            // enabling of accounting, which samples memory use on a periodic basis (data need not
+            // be stored, just collected). In both cases memory use is based upon the job's
+            // Resident Set Size (RSS). A task may exceed the memory limit until the next periodic
+            // accounting sample. -- https://slurm.schedmd.com/sbatch.html
             result << '--mem' << task.config.getMemory().toMega().toString()
         }
 

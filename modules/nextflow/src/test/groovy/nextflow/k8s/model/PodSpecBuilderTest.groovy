@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -444,7 +444,7 @@ class PodSpecBuilderTest extends Specification {
                 spec: [
                         restartPolicy:'Never',
                         securityContext: [ runAsUser: 1000 ],
-                        imagePullSecrets: [ name: 'myPullSecret' ],
+                        imagePullSecrets: [[ name: 'myPullSecret' ]],
                         nodeSelector: [gpu: 'true', queue: 'fast'],
                         
                         containers:[
@@ -468,5 +468,16 @@ class PodSpecBuilderTest extends Specification {
 
         ]
 
+    }
+
+
+    def 'should create image pull request map' () {
+        given:
+        def builder = new PodSpecBuilder(imagePullSecret: 'MySecret')
+        when:
+        def result = builder.createPullSecret()
+        then:
+        result.size() == 1 
+        result.get(0).name == 'MySecret'
     }
 }

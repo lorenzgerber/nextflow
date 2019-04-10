@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import java.util.regex.Pattern
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.Memoized
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FirstParam
 import nextflow.file.FileHelper
 import nextflow.util.CheckHelper
 import nextflow.util.Duration
@@ -77,7 +79,7 @@ class Bolts {
      * @param tz The timezone to be used eg. {@code UTC}. If {@code null} the current timezone is used.
      * @return The date-time formatted as a string
      */
-    static format(Date self, String format=null, String tz=null) {
+    static String format(Date self, String format=null, String tz=null) {
         TimeZone zone = tz ? TimeZone.getTimeZone(tz) : null
         getLocalDateFormat(format ?: DATETIME_FORMAT, zone).get().format(self)
     }
@@ -90,7 +92,7 @@ class Bolts {
      * @param tz The timezone to be used. If {@code null} the current timezone is used.
      * @return The date-time formatted as a string
      */
-    static format(Date self, String format, TimeZone tz) {
+    static String format(Date self, String format, TimeZone tz) {
         getLocalDateFormat(format ?: DATETIME_FORMAT, tz).get().format(self)
     }
 
@@ -197,7 +199,7 @@ class Bolts {
      * @param stripChars  the characters to remove, null treated as whitespace
      * @return the stripped String, <code>null</code> if null String input
      */
-    static stripStart( String self, String stripChars = null ) {
+    static String stripStart( String self, String stripChars = null ) {
         StringUtils.stripStart(self, stripChars)
     }
 
@@ -226,7 +228,7 @@ class Bolts {
      * @param stripChars  the set of characters to remove, null treated as whitespace
      * @return the stripped String, <code>null</code> if null String input
      */
-    static stripEnd( String self, String stripChars = null ) {
+    static String stripEnd( String self, String stripChars = null ) {
         StringUtils.stripEnd(self, stripChars)
     }
 
@@ -494,21 +496,26 @@ class Bolts {
         ResourceGroovyMethods.asType(self, type);
     }
 
+    static <K,V> V getOrCreate( Map<K,V> self, K key, @ClosureParams(FirstParam.FirstGenericType) Closure <V> value ) {
+        getOrCreate0(self,key,value)
+    }
 
-    static <T> T getOrCreate( Map self, key, factory ) {
+    static <K,V> V getOrCreate( Map<K,V> self, K key, V value ) {
+        getOrCreate0(self,key,value)
+    }
 
+    static private <K,V> V getOrCreate0(Map<K,V> self, K key, value) {
         if( self.containsKey(key) )
-            return (T)self.get(key)
+            return self.get(key)
 
         synchronized (self) {
             if( self.containsKey(key) )
-                return (T)self.get(key)
+                return self.get(key)
 
-            def result = factory instanceof Closure ? factory.call(key) : factory
+            final result = (V)(value instanceof Closure ? value.call(key) : value)
             self.put(key,result)
-            return (T)result
+            return result
         }
-
     }
 
     /**

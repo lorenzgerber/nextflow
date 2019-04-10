@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -230,6 +230,14 @@ class PodSpecBuilder {
         return this
     }
 
+    @PackageScope List<Map> createPullSecret() {
+        def result = new ArrayList(1)
+        def entry = new LinkedHashMap(1)
+        entry.name = imagePullSecret
+        result.add(entry)
+        return result
+    }
+
     Map build() {
         assert this.podName, 'Missing K8s podName parameter'
         assert this.imageName, 'Missing K8s imageName parameter'
@@ -280,7 +288,7 @@ class PodSpecBuilder {
             spec.securityContext = securityContext.toSpec()
 
         if( imagePullSecret )
-            spec.imagePullSecrets = ((Map)[name: imagePullSecret])
+            spec.imagePullSecrets = createPullSecret()
 
         // add labels
         if( labels )

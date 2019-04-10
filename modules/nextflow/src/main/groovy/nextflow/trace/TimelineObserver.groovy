@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -208,17 +208,13 @@ class TimelineObserver implements TraceObserver {
     protected String labelString( TraceRecord record ) {
         def result = []
         def duration = record.getFmtStr('duration')
-        def mem = record.getFmtStr('vmem')
-        def rss = record.getFmtStr('peak_rss')
+        def mem = record.getFmtStr('peak_rss')
 
         if( duration )
             result << duration.toString()
 
-        if( mem ) {
-            def str = mem.toString()
-            if( rss ) str += " ($rss)"
-            result << str
-        }
+        if( mem )
+            result << mem.toString()
 
         if( record.cached )
             result << 'CACHED'

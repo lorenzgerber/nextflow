@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -514,7 +514,6 @@ class TaskRun implements Cloneable {
     static final public String CMD_EXIT = '.exitcode'
     static final public String CMD_START = '.command.begin'
     static final public String CMD_RUN = '.command.run'
-    @Deprecated static final public String CMD_STUB = '.command.stub'
     static final public String CMD_TRACE = '.command.trace'
 
 

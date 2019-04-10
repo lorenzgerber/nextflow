@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ import static DataflowHelper.chainImpl
 import static DataflowHelper.newOperator
 import static DataflowHelper.reduceImpl
 import static DataflowHelper.subscribeImpl
+import static nextflow.extension.DataflowHelper.createOpParams
+import static nextflow.extension.DataflowHelper.stopErrorListener
 import static nextflow.splitter.SplitterFactory.countOverChannel
 import static nextflow.util.CheckHelper.checkParams
 /**
@@ -193,22 +195,7 @@ class DataflowExtensions {
 
         final target = new DataflowQueue()
 
-        def listener = new DataflowEventAdapter() {
-            @Override
-            public void afterRun(final DataflowProcessor processor, final List<Object> messages) {
-                if( source instanceof DataflowExpression ) {
-                    processor.bindOutput( Channel.STOP )
-                    processor.terminate()
-                }
-            }
-
-            @Override
-            public boolean onException(final DataflowProcessor processor, final Throwable e) {
-                DataflowExtensions.log.error("@unknown", e)
-                session.abort(e)
-                return true;
-            }
-        }
+        def listener = stopErrorListener(source,target)
 
         newOperator(source, target, listener) {  item ->
 
@@ -1629,7 +1616,9 @@ class DataflowExtensions {
         final result = newChannelBy(source)
         final inputs = [source, other]
         final action = closure ? new ChainWithClosure<>(closure) : new DefaultMergeClosure(inputs.size())
-        newOperator(inputs, [result], action)
+        final listener = stopErrorListener(source,result)
+        final params = createOpParams(inputs, result, listener)
+        newOperator(params, action)
         NodeMarker.addOperatorNode('merge', inputs, result)
         return result;
     }
@@ -1637,9 +1626,11 @@ class DataflowExtensions {
     static DataflowReadChannel merge(final DataflowReadChannel source, final DataflowReadChannel... others) {
         final result = newChannelBy(source)
         final List<DataflowReadChannel> inputs = new ArrayList<DataflowReadChannel>(1 + others.size())
-        inputs.add(source);
-        inputs.addAll(others);
-        newOperator(inputs, [result], new DefaultMergeClosure(1 + others.size()));
+        inputs.add(source)
+        inputs.addAll(others)
+        final listener = stopErrorListener(source,result)
+        final params = createOpParams(inputs, result, listener)
+        newOperator(params, new DefaultMergeClosure(1 + others.size()))
         NodeMarker.addOperatorNode('merge', inputs, result)
         return result;
     }
@@ -1648,9 +1639,11 @@ class DataflowExtensions {
         final result = newChannelBy(source)
         final List<DataflowReadChannel> inputs = new ArrayList<DataflowReadChannel>(1 + others.size())
         final action = closure ? new ChainWithClosure<>(closure) : new DefaultMergeClosure(1 + others.size())
-        inputs.add(source);
-        inputs.addAll(others);
-        newOperator(inputs, [result], action);
+        inputs.add(source)
+        inputs.addAll(others)
+        final listener = stopErrorListener(source,result)
+        final params = createOpParams(inputs, result, listener)
+        newOperator(params, action)
         NodeMarker.addOperatorNode('merge', inputs, result)
         return result;
     }
@@ -1716,6 +1709,16 @@ class DataflowExtensions {
 
 
     static DataflowReadChannel splitText(DataflowReadChannel source, Map opts=null) {
+        final result = new SplitOp( source, 'splitText', opts ).apply()
+        NodeMarker.addOperatorNode('splitText', source, result)
+        return result
+    }
+
+    static DataflowReadChannel splitText(DataflowReadChannel source, Map opts=null, Closure action) {
+        if( opts==null && action ) {
+            opts = new HashMap<>(5)
+        }
+        opts.put('each', action)
         final result = new SplitOp( source, 'splitText', opts ).apply()
         NodeMarker.addOperatorNode('splitText', source, result)
         return result

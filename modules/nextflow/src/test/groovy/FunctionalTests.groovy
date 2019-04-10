@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
+
+import spock.lang.Shared
+import spock.lang.Specification
+
 import nextflow.config.ConfigParser
 import nextflow.processor.TaskProcessor
 import nextflow.script.ScriptRunner
 import nextflow.util.MemoryUnit
-import spock.lang.Shared
-import spock.lang.Specification
+
 /**
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>

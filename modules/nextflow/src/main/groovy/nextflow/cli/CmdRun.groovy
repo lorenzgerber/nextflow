@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,6 +130,11 @@ class CmdRun extends CmdBase implements HubOptions {
     boolean stdin
 
     @Parameter(names = ['-ansi'], hidden = true, arity = 0)
+    boolean setAnsi(boolean value) {
+        launcher.options.ansiLog = value
+    }
+
+    @Parameter(names = ['-ansi-log'], description = 'Enable/disable ANSI console logging', arity = 1)
     boolean setAnsiLog(boolean value) {
         launcher.options.ansiLog = value
     }

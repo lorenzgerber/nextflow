@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -286,6 +286,62 @@ class PodOptionsTest extends Specification {
         opts.securityContext.toSpec() == [runAsUser: 1000, fsGroup: 200, allowPrivilegeEscalation: true]
 
         opts.nodeSelector.toSpec() == [foo: 'X', bar: "Y"]
+    }
+
+    def 'should copy image pull policy' (){
+        given:
+        def data = [
+            [imagePullPolicy : 'FOO']
+        ]
+
+        when:
+        def opts = new PodOptions() + new PodOptions(data)
+        then:
+        opts.imagePullPolicy == 'FOO'
+
+        when:
+        opts = new PodOptions(data) + new PodOptions()
+        then:
+        opts.imagePullPolicy == 'FOO'
+    }
+
+    def 'should copy image pull secret' (){
+        given:
+        def data = [
+                [imagePullSecret : 'BAR']
+        ]
+
+        when:
+        def opts = new PodOptions() + new PodOptions(data)
+        then:
+        opts.imagePullSecret == 'BAR'
+
+        when:
+        opts = new PodOptions(data) + new PodOptions()
+        then:
+        opts.imagePullSecret == 'BAR'
+    }
+
+    def 'should copy pod labels' (){
+        given:
+        def data = [
+                [label: "LABEL", value: 'VALUE']
+        ]
+
+        when:
+        def opts = new PodOptions() + new PodOptions(data)
+        then:
+        opts.labels == ["LABEL": "VALUE"]
+
+        when:
+        opts = new PodOptions(data) + new PodOptions()
+        then:
+        opts.labels == ["LABEL": "VALUE"]
+
+        when:
+        opts = new PodOptions([[label:"FOO", value:'one']]) + new PodOptions([[label:"BAR", value:'two']])
+        then:
+        opts.labels == [FOO: 'one', BAR: 'two']
     }
 
     def 'should create pod labels' () {

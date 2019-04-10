@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1781,7 +1781,7 @@ class TaskProcessor {
         // check conflicting file names
         def conflicts = allNames.findAll { name, num -> num>1 }
         if( conflicts ) {
-            log.debug("Process $name > collision check staing file names: $allNames")
+            log.debug("Process $name > collision check staging file names: $allNames")
             def message = "Process `$name` input file name collision -- There are multiple input files for each of the following file names: ${conflicts.keySet().join(', ')}"
             throw new ProcessUnrecoverableException(message)
         }
@@ -2036,6 +2036,7 @@ class TaskProcessor {
     protected void terminateProcess() {
         log.trace "<${name}> Sending poison pills and terminating process"
         sendPoisonPill()
+        session.notifyProcessTerminate(this)
         session.processDeregister(this)
     }
 
@@ -2120,7 +2121,7 @@ class TaskProcessor {
         }
 
         @Override
-        public List<Object> beforeRun(final DataflowProcessor processor, final List<Object> messages) {
+        List<Object> beforeRun(final DataflowProcessor processor, final List<Object> messages) {
             log.trace "<${name}> Before run -- messages: ${messages}"
             // the counter must be incremented here, otherwise it won't be consistent
             state.update { StateObj it -> it.incSubmitted() }
@@ -2135,7 +2136,7 @@ class TaskProcessor {
         }
 
         @Override
-        public Object messageArrived(final DataflowProcessor processor, final DataflowReadChannel<Object> channel, final int index, final Object message) {
+        Object messageArrived(final DataflowProcessor processor, final DataflowReadChannel<Object> channel, final int index, final Object message) {
             if( log.isTraceEnabled() ) {
                 def channelName = config.getInputs()?.names?.get(index)
                 def taskName = currentTask.get()?.name ?: name
@@ -2146,7 +2147,7 @@ class TaskProcessor {
         }
 
         @Override
-        public Object controlMessageArrived(final DataflowProcessor processor, final DataflowReadChannel<Object> channel, final int index, final Object message) {
+        Object controlMessageArrived(final DataflowProcessor processor, final DataflowReadChannel<Object> channel, final int index, final Object message) {
             if( log.isTraceEnabled() ) {
                 def channelName = config.getInputs()?.names?.get(index)
                 def taskName = currentTask.get()?.name ?: name
@@ -2165,7 +2166,7 @@ class TaskProcessor {
         }
 
         @Override
-        public void afterStop(final DataflowProcessor processor) {
+        void afterStop(final DataflowProcessor processor) {
             log.trace "<${name}> After stop"
         }
 
@@ -2178,7 +2179,7 @@ class TaskProcessor {
          * @param error
          * @return
          */
-        public boolean onException(final DataflowProcessor processor, final Throwable error) {
+        boolean onException(final DataflowProcessor processor, final Throwable error) {
             // return `true` to terminate the dataflow processor
             handleException( error, currentTask.get() )
         }

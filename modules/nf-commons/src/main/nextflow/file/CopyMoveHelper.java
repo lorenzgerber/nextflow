@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ class CopyMoveHelper {
      *
      * @param source The source file path
      * @param target The target file path
-     * @param foreign When {@code true} create a copy on the remote fiel system
+     * @param foreign When {@code true} create a copy on the remote file system
      * @param options Copy options
      * @throws IOException
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,11 @@ trait TraceObserver {
      * Invoked when the process is created.
      */
     void onProcessCreate( TaskProcessor process ){}
+
+    /*
+      * Invoked when all tak have been executed and process ends.
+      */
+    void onProcessTerminate( TaskProcessor process ){}
 
     /**
      * This method is invoked before a process run is going to be submitted

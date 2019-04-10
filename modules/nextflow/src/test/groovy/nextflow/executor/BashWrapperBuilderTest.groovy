@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import nextflow.Session
 import nextflow.cloud.aws.batch.AwsOptions
 import nextflow.container.ContainerConfig
+import nextflow.container.DockerBuilder
 import nextflow.container.SingularityBuilder
 import nextflow.processor.TaskBean
 import nextflow.util.MustacheTemplateEngine
@@ -34,6 +36,10 @@ import nextflow.util.MustacheTemplateEngine
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
 class BashWrapperBuilderTest extends Specification {
+
+    def setupSpec() {
+        new Session()
+    }
 
     private String load(String name, Map<String,String> binding=[:]) {
         def template = new File("src/test/groovy/nextflow/executor/$name").text
@@ -212,6 +218,7 @@ class BashWrapperBuilderTest extends Specification {
         bash.getBinDir() >> Paths.get('/my/bin')
         bash.getWorkDir() >> Paths.get('/my/work/dir')
         bash.getStatsEnabled() >> false
+        bash.getStageInMode() >> 'symlink'
 
         bash.getResolvedInputs() >> [:]
         bash.getContainerConfig() >> [engine: 'singularity', envWhitelist: 'FOO,BAR']
@@ -224,6 +231,33 @@ class BashWrapperBuilderTest extends Specification {
         builder instanceof SingularityBuilder
         builder.env == ['FOO','BAR']
         builder.workDir == Paths.get('/my/work/dir')
+    }
+
+    def 'should add resolved inputs'() {
+        given:
+        def bash = Spy(BashWrapperBuilder)
+        bash.bean = Mock(TaskBean)
+        bash.getContainerConfig() >> [engine: 'docker']
+
+        def BUILDER = Mock(DockerBuilder)
+        def INPUTS = ['/some/path': Paths.get('/store/path.txt')]
+
+        // check input files are mounted in the container
+        when:
+        bash.createContainerBuilder(null)
+        then:
+        bash.createContainerBuilder0('docker') >> BUILDER
+        bash.getResolvedInputs() >> INPUTS
+        bash.getStageInMode() >> null
+        1 * BUILDER.addMountForInputs(INPUTS) >> null
+
+        // -- do not mount inputs when stage-in-mode == 'copy'
+        when:
+        bash.createContainerBuilder(null)
+        then:
+        bash.createContainerBuilder0('docker') >> BUILDER
+        bash.getStageInMode() >> 'copy'
+        0 * BUILDER.addMountForInputs(_) >> null
     }
 
     def 'should render launcher script' () {
@@ -576,6 +610,21 @@ class BashWrapperBuilderTest extends Specification {
                 source activate /some/conda/env/foo
                 '''.stripIndent()
 
+    }
+
+    def 'should cleanup scratch dir' () {
+
+        when:
+        def binding = newBashWrapperBuilder().makeBinding()
+        then:
+        binding.cleanup_cmd == ''
+        binding.containsKey('cleanup_cmd')
+
+
+        when:
+        binding = newBashWrapperBuilder(scratch: true).makeBinding()
+        then:
+        binding.cleanup_cmd == 'rm -rf $NXF_SCRATCH || true\n'
     }
 
     def 'should create wrapper with docker' () {

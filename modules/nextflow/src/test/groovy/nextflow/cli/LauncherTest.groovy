@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -234,6 +234,10 @@ class LauncherTest extends Specification {
         launcher.normalizeArgs('run','-syslog', 'host.com') == ['run', '-syslog','host.com']
         launcher.normalizeArgs('run','-syslog') == ['run', '-syslog','localhost']
         launcher.normalizeArgs('run','-syslog', '-x') == ['run', '-syslog','localhost', '-x']
+
+        launcher.normalizeArgs('run','-ansi-log', '-x') == ['run', '-ansi-log','true', '-x']
+        launcher.normalizeArgs('run','-ansi-log', 'true', '-x') == ['run', '-ansi-log','true', '-x']
+        launcher.normalizeArgs('run','-ansi-log', 'false', '-x') == ['run', '-ansi-log','false', '-x']
 
         launcher.normalizeArgs( script.toAbsolutePath().toString(), '--x=1' ) == ['run', script.toAbsolutePath().toString(), '--x=1']
 

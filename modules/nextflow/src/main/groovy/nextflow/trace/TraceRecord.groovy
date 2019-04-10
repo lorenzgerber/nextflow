@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,9 @@ class TraceRecord implements Serializable {
             disk:       'mem',
             time:       'time',
             env:        'str',
-            error_action:'str'
+            error_action:'str',
+            vol_ctxt: 'num',
+            inv_ctxt: 'num'
     ]
 
     static public Map<String,Closure<String>> FORMATTER = [
@@ -185,13 +187,15 @@ class TraceRecord implements Serializable {
      * @return
      */
     @PackageScope
-    static String fmtMemory( def value, String fmt) {
+    static String fmtMemory( def value, String fmt ) {
         if( value == null ) return NA
+
+        if( value instanceof Number )
+            return new MemoryUnit(value.toLong()).toString()
 
         String str = value.toString()
         if( str.isLong() ) {
-            str = new MemoryUnit(str.toLong()).toString()
-            str = str.replaceAll(/,/,'')
+            return new MemoryUnit(str.toLong()).toString()
         }
 
         return str
@@ -248,8 +252,11 @@ class TraceRecord implements Serializable {
         store.get(name)
     }
 
-    def void put( String name, def value ) {
-        assert keySet().contains(name), "Not a valid TraceRecord field: '$name'"
+    void put( String name, def value ) {
+        if( !keySet().contains(name) ) {
+            log.warn1 "Unknown trace record field: $name"
+            return
+        }
 
         // vmpeak: Peak virtual memory size
         // this is a synonym of 'max_vmem' field

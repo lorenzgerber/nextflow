@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package nextflow.extension
+
+import org.codehaus.groovy.runtime.InvokerHelper
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
 import java.nio.ByteBuffer
@@ -1480,15 +1482,18 @@ class FilesEx {
     }
 
     static String toUriString( Path path ) {
-        if(!path)
+        if(path==null)
             return null
         final scheme = getScheme(path)
         if( scheme == 'file' )
             return path.toString()
-        if( scheme == 's3')
+        if( scheme == 's3' )
             return "$scheme:/$path".toString()
-        else
-            return path.toUri().toString()
+        if( scheme == 'gs' ) {
+            final bucket = InvokerHelper.invokeMethod(path, 'bucket', InvokerHelper.EMPTY_ARGS)
+            return "$scheme://$bucket$path".toString()
+        }
+        return path.toUri().toString()
     }
 
     static String getScheme(Path path) {

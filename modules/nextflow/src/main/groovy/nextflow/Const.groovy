@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@ import static nextflow.extension.Bolts.DATETIME_FORMAT
  */
 class Const {
 
+    static final public String ISO_8601_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+
     static final public transient BOOL_YES = ['true','yes','on']
 
     static final public transient BOOL_NO = ['false','no','off']
@@ -50,17 +52,17 @@ class Const {
     /**
      * The application version
      */
-    static public final String APP_VER = "19.1.0-edge"
+    static public final String APP_VER = "19.03.0-edge"
 
     /**
      * The app build time as linux/unix timestamp
      */
-    static public final long APP_TIMESTAMP = 1545514050311
+    static public final long APP_TIMESTAMP = 1552584379498
 
     /**
      * The app build number
      */
-    static public final int APP_BUILDNUM = 5048
+    static public final int APP_BUILDNUM = 5061
 
 
     /**

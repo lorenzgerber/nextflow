@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018, Centre for Genomic Regulation (CRG)
+ * Copyright 2013-2019, Centre for Genomic Regulation (CRG)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -266,8 +266,9 @@ abstract class AbstractGridExecutor extends Executor {
 
             final buf = new StringBuilder()
             final process = new ProcessBuilder(cmd).redirectErrorStream(true).start()
-            process.consumeProcessOutputStream(buf)
-            final exit = process.waitFor()
+            final consumer = process.consumeProcessOutputStream(buf)
+            process.waitForOrKill(60_000)
+            final exit = process.exitValue(); consumer.join() // <-- make sure sync with the output consume #1045
             final result = buf.toString()
 
             if( exit == 0 ) {
